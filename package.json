@@ -1,0 +1,21 @@
+{
+  "name": "assignment-3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo \"Building project...\"",
+    "test": "echo \"Running tests...\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Khosbayera/Assignment-3.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Khosbayera/Assignment-3/issues"
+  },
+  "homepage": "https://github.com/Khosbayera/Assignment-3#readme"
+}
