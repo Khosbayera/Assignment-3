@@ -1,0 +1,28 @@
+name: Scheduled Cleanup of Artifacts
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Runs every Sunday at midnight (UTC)
+  workflow_dispatch: # allows manual run
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Delete old artifacts
+        id: delete_artifacts
+        uses: geekyeggo/delete-artifact@v4
+        with:
+          # Deletes all artifacts older than 7 days
+          age: 7d
+          failOnError: false
+
+      - name: Log cleanup summary
+        run: |
+          echo "🧹 Cleanup completed successfully!"
+          echo "🗓️ Timestamp: $(date -u)"
+          echo "🧾 Deleted artifacts older than 7 days."
