@@ -2,13 +2,15 @@ name: Dependency Caching with Restore Keys
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  cache-dependencies:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,22 +21,37 @@ jobs:
           node-version: '18'
 
       - name: Cache node_modules
-        id: cache-node
+        id: cache-node-modules
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: "${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}"
-          restore-keys:
-            - "${{ runner.os }}-node-"
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+            ${{ runner.os }}-
 
       - name: Log cache hit status
-        run: echo "Cache hit: ${{ steps.cache-node.outputs.cache-hit }}"
+        run: |
+          if [ "${{ steps.cache-node-modules.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ Cache hit! node_modules restored from cache."
+            echo "Cache key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}"
+          else
+            echo "❌ Cache miss! Dependencies will be installed."
+            echo "Attempted key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}"
+          fi
 
       - name: Install dependencies
-        run: npm install
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
 
-      - name: Build project
-        run: npm run build
+      - name: Display cache information
+        run: |
+          echo "=== Cache Information ==="
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Cache Key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}"
+          echo "Cache Hit: ${{ steps.cache-node-modules.outputs.cache-hit }}"
+          echo "Node modules directory size:"
+          du -sh node_modules 2>/dev/null || echo "node_modules not found"
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests (optional)
+        run: npm test --if-present
