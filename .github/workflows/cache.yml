@@ -20,6 +20,17 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Check for package-lock.json
+        id: check-lockfile
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "lockfile_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ package-lock.json found"
+          else
+            echo "lockfile_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  package-lock.json not found, will create one"
+          fi
+
       - name: Cache node_modules
         id: cache-node-modules
         uses: actions/cache@v4
@@ -40,9 +51,15 @@ jobs:
             echo "Attempted key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}"
           fi
 
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - name: Install dependencies (with npm ci)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true' && steps.check-lockfile.outputs.lockfile_exists == 'true'
         run: npm ci
+
+      - name: Install dependencies (with npm install)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true' && steps.check-lockfile.outputs.lockfile_exists == 'false'
+        run: |
+          echo "⚠️  Running npm install to generate package-lock.json"
+          npm install
 
       - name: Display cache information
         run: |
@@ -50,8 +67,14 @@ jobs:
           echo "Runner OS: ${{ runner.os }}"
           echo "Cache Key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}"
           echo "Cache Hit: ${{ steps.cache-node-modules.outputs.cache-hit }}"
+          echo "Lockfile exists: ${{ steps.check-lockfile.outputs.lockfile_exists }}"
+          echo ""
           echo "Node modules directory size:"
           du -sh node_modules 2>/dev/null || echo "node_modules not found"
+          echo ""
+          if [ -f "package-lock.json" ]; then
+            echo "✅ package-lock.json is present"
+          fi
 
       - name: Run tests (optional)
         run: npm test --if-present
